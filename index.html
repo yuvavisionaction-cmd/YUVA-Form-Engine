@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YUVA Bharat • Event Registration & Application Portal</title>
+  <meta name="description" content="Register for YUVA Bharat flagship events, conclaves, hackathons, and youth development fellowships.">
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+
+  <!-- Google Fonts & Font Awesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Supabase JS Client via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Master Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top SaaS Header -->
+  <header class="saas-header">
+    <div class="saas-header-inner">
+      <div class="brand-section">
+        <a href="index.html" style="display:flex; align-items:center; gap:0.85rem; text-decoration:none;">
+          <div class="brand-logo-badge">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <div class="brand-info">
+            <h1>YUVA <span>Bharat</span></h1>
+            <div class="brand-sub">Unified Event Registration Portal</div>
+          </div>
+        </a>
+      </div>
+
+      <div class="header-right-actions">
+        <a href="https://yuva.ind.in/Events/Upcoming.html" target="_blank" class="btn btn-secondary btn-sm" title="Explore Upcoming YUVA Bharat Events">
+          <i class="fas fa-calendar-alt"></i> Upcoming Events
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Renderer Container -->
+  <main class="app-container">
+    <div class="renderer-wrapper">
+
+      <!-- Loading State Skeleton -->
+      <div id="form-loading-state" class="saas-card" style="text-align:center; padding:3.5rem 2rem;">
+        <div class="spinner" style="width:36px; height:36px; border-width:3px; margin:0 auto 1.25rem; border-color:#e2e8f0; border-top-color:var(--saffron-primary);"></div>
+        <h3 style="font-size:1.15rem; font-weight:800; color:var(--navy-primary); margin-bottom:0.35rem;">Loading Registration Portal...</h3>
+        <p style="font-size:0.85rem; color:var(--text-muted);">Fetching dynamic form schema and event details from Supabase.</p>
+      </div>
+
+      <!-- Soft Portal State / Not Found Card -->
+      <div id="form-error-state" class="saas-card" style="display:none; text-align:center; padding:3.5rem 2rem; border-color:#e2e8f0; box-shadow:0 4px 20px -4px rgba(0, 0, 0, 0.05);">
+        <div style="width:64px; height:64px; margin:0 auto 1.25rem; border-radius:50%; background:rgba(0, 0, 128, 0.05); display:flex; align-items:center; justify-content:center; color:#000080; font-size:1.75rem; border:1px solid #e2e8f0;">
+          <i class="fas fa-clipboard-list"></i>
+        </div>
+        <h3 id="form-error-title" style="font-size:1.35rem; font-weight:800; color:var(--navy-primary); margin-bottom:0.5rem;">Registration Portal</h3>
+        <p id="form-error-message" style="font-size:0.92rem; color:var(--text-secondary); max-width:480px; margin:0 auto 1.5rem; line-height:1.55;">
+          There are currently no active public registration forms open at this address. Please verify your event invitation link or explore upcoming programs.
+        </p>
+        <div style="display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;">
+          <a href="https://yuva.ind.in/Events/Upcoming.html" class="btn btn-primary btn-sm">
+            <i class="fas fa-calendar-alt"></i> View Upcoming Events
+          </a>
+          <a href="https://yuva.ind.in/home.html" class="btn btn-secondary btn-sm">
+            <i class="fas fa-home"></i> Back to Homepage
+          </a>
+        </div>
+      </div>
+
+      <!-- Closed State -->
+      <div id="form-closed-state" class="saas-card" style="display:none; text-align:center; padding:3.5rem 2rem; border-color:#fed7aa;">
+        <div style="width:64px; height:64px; margin:0 auto 1.25rem; border-radius:50%; background:#fff7ed; display:flex; align-items:center; justify-content:center; color:#ea580c; font-size:1.85rem; border:1px solid #fdba74;">
+          <i class="fas fa-lock"></i>
+        </div>
+        <h3 style="font-size:1.35rem; font-weight:800; color:var(--navy-primary); margin-bottom:0.5rem;">Registration Closed</h3>
+        <p id="form-closed-message" style="font-size:0.92rem; color:var(--text-secondary); max-width:480px; margin:0 auto 1.5rem; line-height:1.55;">
+          Registrations for this event have concluded or this form has been closed by the organizers. Thank you for your interest.
+        </p>
+        <div style="display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;">
+          <a href="https://yuva.ind.in/Events/Upcoming.html" class="btn btn-primary btn-sm">
+            <i class="fas fa-calendar-alt"></i> Explore Upcoming Events
+          </a>
+          <a href="https://yuva.ind.in/home.html" class="btn btn-secondary btn-sm">
+            <i class="fas fa-home"></i> Back to Homepage
+          </a>
+        </div>
+      </div>
+
+      <!-- Under Review / Verification Pending State -->
+      <div id="form-under-review-state" class="saas-card" style="display:none; text-align:center; padding:3.5rem 2rem; border-color:#fde68a;">
+        <div style="width:64px; height:64px; margin:0 auto 1.25rem; border-radius:50%; background:#fffbeb; display:flex; align-items:center; justify-content:center; color:#d97706; font-size:1.85rem; border:1px solid #fde68a;">
+          <i class="fas fa-hourglass-half"></i>
+        </div>
+        <h3 style="font-size:1.35rem; font-weight:800; color:var(--navy-primary); margin-bottom:0.5rem;">Registration Not Yet Active</h3>
+        <p id="form-under-review-message" style="font-size:0.92rem; color:var(--text-secondary); max-width:500px; margin:0 auto 1.5rem; line-height:1.55;">
+          This registration form is currently under review and is not yet open for public submissions. Please check back shortly.
+        </p>
+        <div style="display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;">
+          <a href="https://yuva.ind.in/Events/Upcoming.html" class="btn btn-primary btn-sm">
+            <i class="fas fa-calendar-alt"></i> Explore Other Events
+          </a>
+          <a href="https://yuva.ind.in/home.html" class="btn btn-secondary btn-sm">
+            <i class="fas fa-home"></i> Back to Homepage
+          </a>
+        </div>
+      </div>
+
+      <!-- Multi-Form Directory Hub (When visiting root and multiple forms are live) -->
+      <div id="form-hub-state" style="display:none;">
+        <div class="saas-card" style="margin-bottom:1.5rem; text-align:center; padding:2.25rem 1.5rem;">
+          <div class="form-badge-pill" style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,153,51,0.1); color:var(--saffron-primary); border:1px solid rgba(255,153,51,0.25); padding:4px 14px; border-radius:9999px; font-size:0.75rem; font-weight:700; text-transform:uppercase; margin-bottom:0.75rem;">
+            <i class="fas fa-calendar-check"></i> Open Registrations
+          </div>
+          <h1 style="font-size:1.75rem; font-weight:900; color:var(--navy-primary); margin-bottom:0.4rem; letter-spacing:-0.02em;">
+            Select an Event to Register
+          </h1>
+          <p style="font-size:0.92rem; color:var(--text-secondary); max-width:540px; margin:0 auto; line-height:1.5;">
+            Explore currently active programs and delegate registration portals. Choose an initiative below to submit your details.
+          </p>
+        </div>
+
+        <div id="form-hub-grid" class="form-hub-grid">
+          <!-- Populated dynamically with active form cards in app.js -->
+        </div>
+      </div>
+
+      <!-- Active Form Card -->
+      <div id="rendered-form-wrapper" style="display:none;">
+        <div class="saas-card form-header-card" style="margin-bottom:1.5rem;">
+          <span id="rendered-event-badge" class="form-event-badge" style="display:none;"></span>
+          <h1 id="rendered-form-title" class="form-title">Event Registration</h1>
+          <p id="rendered-form-desc" class="form-description"></p>
+        </div>
+
+        <form id="yuva-live-form" class="saas-card" novalidate>
+          <div id="rendered-form-fields">
+            <!-- Dynamically populated by YuvaFormRenderer in app.js -->
+          </div>
+
+          <div style="margin-top:2rem; padding-top:1.25rem; border-top:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+            <div style="font-size:0.8rem; color:var(--text-muted);">
+              <i class="fas fa-shield-alt" style="color:var(--green-primary);"></i> 256-Bit Encrypted & Verified Submission
+            </div>
+            <button type="submit" id="yuva-submit-btn" class="btn btn-primary" style="min-width:200px; padding:0.8rem 1.75rem; font-size:1rem;">
+              <i class="fas fa-paper-plane"></i> Submit Registration
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Success State Card -->
+      <div id="form-success-state" class="saas-card success-card" style="display:none;">
+        <div class="success-icon-wrap">
+          <i class="fas fa-check"></i>
+        </div>
+        <h2 style="font-size:1.85rem; font-weight:800; color:var(--navy-primary); margin-bottom:0.5rem;">Registration Confirmed!</h2>
+        <p id="success-custom-message" style="font-size:0.95rem; color:var(--text-secondary); max-width:540px; margin:0 auto;">
+          Thank you for registering. Your application has been recorded in the central database.
+        </p>
+
+        <div class="reference-box">
+          <div style="font-size:0.8rem; font-weight:700; color:var(--green-primary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.35rem;">
+            Registration Reference Number
+          </div>
+          <div id="success-ref-code" class="reference-code mono">------</div>
+          <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.4rem;">
+            <i class="fas fa-envelope" style="color:var(--saffron-primary);"></i> A confirmation email has been dispatched to your email address.
+          </div>
+        </div>
+
+        <div style="margin-top:2rem; display:flex; justify-content:center; gap:1rem; flex-wrap:wrap;">
+          <button class="btn btn-secondary" onclick="window.print()">
+            <i class="fas fa-print"></i> Print Receipt
+          </button>
+          <a href="index.html" class="btn btn-primary">
+            <i class="fas fa-redo"></i> Submit Another Response
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer style="text-align:center; padding:2rem 1.5rem; color:var(--text-muted); font-size:0.82rem; border-top:1px solid var(--border-light); margin-top:auto; background:#ffffff;">
+    <p style="font-weight:600; color:var(--text-primary);">© 2026 YUVA Bharat • Youth Vision Action • All Rights Reserved</p>
+    <p style="margin-top:0.25rem;">Unified Forms Engine deployed independently on <code class="mono">forms.yuva.ind.in</code></p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      window.yuvaRenderer = new YuvaFormRenderer();
+    });
+  </script>
+</body>
+</html>

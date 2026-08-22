@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YUVA Forms Studio • Enterprise Form Builder & Event Sync</title>
+  <meta name="description" content="SaaS Form Builder platform for YUVA Bharat events. Build dynamic registration forms and sync links in real-time.">
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+
+  <!-- Google Fonts & Font Awesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Supabase JS Client via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Master Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=2026.08.21.28">
+</head>
+<body>
+
+  <!-- Top SaaS Header -->
+  <header class="saas-header">
+    <div class="saas-header-inner">
+      
+      <!-- Brand Section -->
+      <div class="brand-section">
+        <div class="brand-logo-badge">
+          <i class="fas fa-layer-group"></i>
+        </div>
+        <div class="brand-info">
+          <h1>YUVA <span>Forms Studio</span></h1>
+          <div class="brand-sub">Event Form Engine</div>
+        </div>
+      </div>
+
+      <!-- Center Connected Notch Tabs (Razorpay Style) -->
+      <div class="saas-tabs-bar">
+        <button class="saas-tab-btn active" data-tab="builder">
+          <i class="fas fa-cubes"></i> Form Builder
+        </button>
+        <button class="saas-tab-btn" data-tab="all-forms">
+          <i class="fas fa-folder-open"></i> All Forms
+        </button>
+        <button class="saas-tab-btn" data-tab="submissions">
+          <i class="fas fa-table-list"></i> Submissions
+        </button>
+      </div>
+
+      <!-- Header Right Actions -->
+      <div class="header-right-actions" id="header-right-actions">
+        <div class="db-status-indicator" title="Connected to Supabase database">
+          <span class="db-status-dot"></span>
+          <span class="db-status-text">Supabase Active</span>
+        </div>
+
+        <div id="organizer-identity-pill" class="organizer-chip" style="display:none;">
+          <div class="organizer-chip-icon"><i class="fas fa-user-check"></i></div>
+          <div class="organizer-chip-info">
+            <span id="organizer-pill-text" class="organizer-chip-name">Event Uploader</span>
+          </div>
+          <button type="button" class="organizer-chip-logout" onclick="window.yuvaAdmin.logoutUploader()" title="Log out / Switch Account">
+            <i class="fas fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+
+        <button class="header-btn-auth" id="btn-organizer-auth" onclick="window.yuvaAdmin.openAuthModal()">
+          <i class="fas fa-user-lock"></i> <span class="btn-text">Uploader Login</span>
+        </button>
+
+        <button class="header-btn-publish" id="admin-save-form-btn">
+          <i class="fas fa-cloud-arrow-up"></i> <span class="btn-text">Save &amp; Publish</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="app-container">
+
+    <!-- TAB 1: FORM BUILDER STUDIO -->
+    <div id="admin-builder-section">
+
+      <!-- Event Linker & Form Metadata Card -->
+      <div class="saas-card" style="margin-bottom: 1.5rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem; flex-wrap:wrap; gap:1rem;">
+          <div>
+            <h2 style="font-size:1.15rem; font-weight:800; color:var(--navy-primary); display:flex; align-items:center; gap:0.5rem;">
+              <i class="fas fa-link" style="color:var(--saffron-primary);"></i> Link to Existing Event & Configure Form
+            </h2>
+            <p style="font-size:0.82rem; color:var(--text-muted);">Select an event from Supabase to automatically synchronize the live registration link.</p>
+          </div>
+          <div id="linked-event-badge"></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem; margin-bottom:1rem;">
+          <!-- 1. Custom Interactive Event Selector -->
+          <div class="saas-field-group">
+            <label class="saas-field-label"><i class="fas fa-calendar-alt"></i> Select Event from Database</label>
+            <div class="custom-dropdown-container" id="custom-event-dropdown">
+              <button type="button" class="custom-dropdown-trigger" id="event-dropdown-trigger" onclick="window.yuvaAdmin && window.yuvaAdmin.toggleEventDropdown(event)">
+                <div class="dropdown-trigger-content">
+                  <i class="fas fa-calendar-check dropdown-leading-icon"></i>
+                  <span class="dropdown-selected-text" id="event-dropdown-selected-text">-- Select an Event to Link (Optional) --</span>
+                </div>
+                <i class="fas fa-chevron-down dropdown-chevron"></i>
+              </button>
+              
+              <!-- Popover Menu -->
+              <div class="custom-dropdown-menu" id="event-dropdown-menu">
+                <div class="dropdown-search-wrap">
+                  <i class="fas fa-search dropdown-search-icon"></i>
+                  <input type="text" class="dropdown-search-input" id="event-dropdown-search" placeholder="Search events..." autocomplete="off">
+                </div>
+                <div class="dropdown-items-list" id="event-dropdown-options">
+                  <div style="padding:1rem; text-align:center; color:var(--text-muted); font-size:0.85rem;">
+                    <span class="spinner" style="border-top-color:var(--saffron-primary);"></span> Loading events...
+                  </div>
+                </div>
+              </div>
+              <!-- Hidden input maintaining backwards compatibility -->
+              <input type="hidden" id="admin-event-select" value="">
+            </div>
+          </div>
+
+          <!-- 2. Form Title -->
+          <div class="saas-field-group">
+            <label class="saas-field-label"><i class="fas fa-heading"></i> Form Title <span style="color:var(--accent-rose);">*</span></label>
+            <input type="text" id="form-builder-title" class="saas-field-control" placeholder="e.g. National Youth Conclave Registration">
+          </div>
+
+          <!-- 3. Form ID Slug (System Auto-Generated & Read-Only) -->
+          <div class="saas-field-group">
+            <label class="saas-field-label"><i class="fas fa-fingerprint"></i> System Form ID (Auto-Generated)</label>
+            <input type="text" id="form-builder-slug" class="saas-field-control mono" readonly placeholder="Auto-generated by system" style="background:#f8fafc; color:var(--text-secondary); cursor:not-allowed;">
+          </div>
+        </div>
+
+        <!-- Creator / Organizer Contact Details -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem 1.25rem; margin-bottom:1rem;">
+          <div style="font-size:0.85rem; font-weight:800; color:var(--navy-primary); margin-bottom:0.75rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <i class="fas fa-user-shield" style="color:var(--saffron-primary);"></i> Form Creator / Organizer Contact Details
+            </div>
+            <span id="creator-identity-lock-badge" style="display:none; font-size:0.74rem; font-weight:700; background:#f0fdf4; border:1px solid #bbf7d0; color:#16a34a; padding:2px 9px; border-radius:980px; align-items:center; gap:4px;">
+              <i class="fas fa-lock" style="font-size:0.7rem;"></i> Verified &amp; Locked
+            </span>
+          </div>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem;">
+            <div class="saas-field-group" style="margin-bottom:0;">
+              <label class="saas-field-label"><i class="fas fa-user"></i> Your Full Name <span style="color:var(--accent-rose);">*</span></label>
+              <input type="text" id="form-builder-creator-name" class="saas-field-control" placeholder="e.g. Rahul Sharma">
+            </div>
+            <div class="saas-field-group" style="margin-bottom:0;">
+              <label class="saas-field-label"><i class="fas fa-envelope"></i> Official Email Address <span style="color:var(--accent-rose);">*</span></label>
+              <input type="email" id="form-builder-creator-email" class="saas-field-control" placeholder="e.g. organizer@yuva.org">
+            </div>
+            <div class="saas-field-group" style="margin-bottom:0;">
+              <label class="saas-field-label"><i class="fas fa-phone"></i> Mobile / WhatsApp <span style="color:var(--accent-rose);">*</span></label>
+              <input type="tel" id="form-builder-creator-phone" class="saas-field-control" placeholder="e.g. +91 98765 43210">
+            </div>
+          </div>
+
+          <!-- Discrepancy & Rejection Warning Notice -->
+          <div style="margin-top:0.85rem; padding:0.65rem 0.9rem; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; display:flex; align-items:flex-start; gap:0.6rem; font-size:0.78rem; color:#991b1b; line-height:1.45;">
+            <i class="fas fa-exclamation-triangle" style="color:#ef4444; margin-top:2px; flex-shrink:0; font-size:0.85rem;"></i>
+            <div>
+              <strong>Strict Verification Policy:</strong> Please provide authentic and active contact credentials. Any discrepancy, invalid format, or unreachable email/mobile number will lead to <strong>direct rejection</strong> of the form by the organization.
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Form Description -->
+        <div class="saas-field-group" style="margin-bottom:0.25rem;">
+          <label class="saas-field-label"><i class="fas fa-align-left"></i> Form Instructions / Description</label>
+          <textarea id="form-builder-desc" class="saas-field-control" placeholder="Provide instructions or brief info for participants..."></textarea>
+        </div>
+      </div>
+
+      <!-- 3-Column Studio Grid -->
+      <!-- Mobile Panel Switcher (only visible on mobile) -->
+      <div class="mobile-panel-switcher" id="mobile-panel-switcher">
+        <button class="mobile-panel-btn active" data-panel="toolbox" onclick="switchMobilePanel('toolbox', this)">
+          <i class="fas fa-toolbox"></i> Toolbox
+        </button>
+        <button class="mobile-panel-btn" data-panel="canvas" onclick="switchMobilePanel('canvas', this)">
+          <i class="fas fa-layer-group"></i> Canvas
+        </button>
+        <button class="mobile-panel-btn" data-panel="preview" onclick="switchMobilePanel('preview', this)">
+          <i class="fas fa-eye"></i> Preview
+        </button>
+      </div>
+
+      <div class="builder-grid">
+
+        <!-- Column 1: Left Input Arsenal (Palette) -->
+        <div class="toolbox-panel mobile-panel-section active" id="panel-toolbox" style="max-height: calc(100vh - 200px); overflow-y: auto;">
+          <div style="font-size:0.9rem; font-weight:800; color:var(--navy-primary); margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;">
+            <i class="fas fa-toolbox" style="color:var(--saffron-primary);"></i> Input Arsenal
+          </div>
+
+          <div class="toolbox-category-header">Core Fields</div>
+          <div class="toolbox-grid">
+            <button class="toolbox-item-btn" data-field-type="text">
+              <i class="fas fa-font"></i> Short Text
+            </button>
+            <button class="toolbox-item-btn" data-field-type="email">
+              <i class="fas fa-envelope"></i> Email Address
+            </button>
+            <button class="toolbox-item-btn" data-field-type="phone">
+              <i class="fas fa-phone"></i> Mobile / WhatsApp
+            </button>
+            <button class="toolbox-item-btn" data-field-type="number">
+              <i class="fas fa-hashtag"></i> Number Input
+            </button>
+            <button class="toolbox-item-btn" data-field-type="textarea">
+              <i class="fas fa-paragraph"></i> Long Paragraph
+            </button>
+            <button class="toolbox-item-btn" data-field-type="url">
+              <i class="fas fa-link"></i> Website / URL
+            </button>
+          </div>
+
+          <div class="toolbox-category-header">Choices & Dropdowns</div>
+          <div class="toolbox-grid">
+            <button class="toolbox-item-btn" data-field-type="select">
+              <i class="fas fa-list"></i> Select Dropdown
+            </button>
+            <button class="toolbox-item-btn" data-field-type="radio">
+              <i class="fas fa-dot-circle"></i> Single Choice (Radio)
+            </button>
+            <button class="toolbox-item-btn" data-field-type="checkbox">
+              <i class="fas fa-check-square"></i> Multi-Choice (Check)
+            </button>
+            <button class="toolbox-item-btn" data-field-type="boolean">
+              <i class="fas fa-toggle-on"></i> Yes / No Switch
+            </button>
+            <button class="toolbox-item-btn" data-field-type="state">
+              <i class="fas fa-map"></i> State / UT Picker
+            </button>
+            <button class="toolbox-item-btn" data-field-type="tshirt">
+              <i class="fas fa-tshirt"></i> T-Shirt / Kit Size
+            </button>
+            <button class="toolbox-item-btn" data-field-type="blood_group">
+              <i class="fas fa-heartbeat"></i> Blood Group
+            </button>
+          </div>
+
+          <div class="toolbox-category-header">Ratings & Scales</div>
+          <div class="toolbox-grid">
+            <button class="toolbox-item-btn" data-field-type="rating">
+              <i class="fas fa-star"></i> 5-Star Rating
+            </button>
+            <button class="toolbox-item-btn" data-field-type="scale">
+              <i class="fas fa-sliders-h"></i> Opinion Scale (1-10)
+            </button>
+          </div>
+
+          <div class="toolbox-category-header">Dates & Times</div>
+          <div class="toolbox-grid">
+            <button class="toolbox-item-btn" data-field-type="date">
+              <i class="fas fa-calendar"></i> Date Picker
+            </button>
+            <button class="toolbox-item-btn" data-field-type="time">
+              <i class="fas fa-clock"></i> Time Picker
+            </button>
+            <button class="toolbox-item-btn" data-field-type="datetime">
+              <i class="fas fa-calendar-check"></i> Date & Time Slot
+            </button>
+          </div>
+
+          <div class="toolbox-category-header">IDs & Social Verification</div>
+          <div class="toolbox-grid">
+            <button class="toolbox-item-btn" data-field-type="college">
+              <i class="fas fa-university"></i> College / Campus
+            </button>
+            <button class="toolbox-item-btn" data-field-type="id_proof">
+              <i class="fas fa-id-card"></i> Aadhaar / Gov ID
+            </button>
+            <button class="toolbox-item-btn" data-field-type="currency">
+              <i class="fas fa-rupee-sign"></i> Fee / Amount (₹)
+            </button>
+            <button class="toolbox-item-btn" data-field-type="linkedin">
+              <i class="fab fa-linkedin"></i> LinkedIn URL
+            </button>
+            <button class="toolbox-item-btn" data-field-type="social">
+              <i class="fab fa-instagram"></i> Social Handle
+            </button>
+          </div>
+
+          <div class="toolbox-category-header">Files, Consent & Layout</div>
+          <div class="toolbox-grid">
+            <button class="toolbox-item-btn" data-field-type="file">
+              <i class="fas fa-cloud-upload-alt"></i> File Upload
+            </button>
+            <button class="toolbox-item-btn" data-field-type="signature">
+              <i class="fas fa-signature"></i> Digital Signature
+            </button>
+            <button class="toolbox-item-btn" data-field-type="consent">
+              <i class="fas fa-shield-alt"></i> Terms & Consent
+            </button>
+            <button class="toolbox-item-btn" data-field-type="address">
+              <i class="fas fa-map-marked-alt"></i> Full Address
+            </button>
+            <button class="toolbox-item-btn" data-field-type="section">
+              <i class="fas fa-heading"></i> Section Header
+            </button>
+          </div>
+        </div>
+
+        <!-- Column 2: Center Interactive Canvas -->
+        <div class="mobile-panel-section" id="panel-canvas">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3 style="font-size:1.1rem; font-weight:800; color:var(--navy-primary);">
+              <i class="fas fa-layer-group" style="color:var(--saffron-primary);"></i> Form Questions Canvas
+            </h3>
+            <span style="font-size:0.78rem; color:var(--text-muted);"><i class="fas fa-info-circle"></i> Click any field to edit properties or reorder</span>
+          </div>
+          <div class="canvas-container" id="builder-canvas">
+            <!-- Rendered dynamically by app.js -->
+          </div>
+        </div>
+
+        <!-- Column 3: Right Live Interactive Simulator -->
+        <div class="builder-preview-panel mobile-panel-section" id="panel-preview">
+          <div class="simulator-panel">
+            <div class="simulator-top-bar">
+              <div class="window-dots">
+                <span class="window-dot red"></span>
+                <span class="window-dot yellow"></span>
+                <span class="window-dot green"></span>
+              </div>
+              <div class="preview-device-toggle">
+                <button class="preview-device-btn active" data-device="desktop" title="Desktop View"><i class="fas fa-desktop"></i></button>
+                <button class="preview-device-btn" data-device="tablet" title="Tablet View"><i class="fas fa-tablet-alt"></i></button>
+                <button class="preview-device-btn" data-device="mobile" title="Mobile View"><i class="fas fa-mobile-alt"></i></button>
+              </div>
+            </div>
+
+            <div class="simulator-browser-bar">
+              <i class="fas fa-lock" style="font-size:0.7rem; color:var(--green-primary);"></i>
+              <span class="simulator-url-text">forms.yuva.ind.in/?form_id=<span id="sim-slug-preview">--</span></span>
+            </div>
+
+            <div id="preview-simulator-frame" class="simulator-frame view-desktop">
+              <div class="simulator-screen-content">
+                <div style="margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid var(--border-light);">
+                  <span id="preview-event-badge" class="form-event-badge" style="display:none;"></span>
+                  <h4 id="preview-form-title" style="font-size:1.15rem; font-weight:800; color:var(--navy-primary); margin-bottom:0.25rem;"></h4>
+                  <p id="preview-form-desc" style="font-size:0.82rem; color:var(--text-secondary);"></p>
+                </div>
+                <div id="preview-form-body">
+                  <!-- Live Preview fields rendered here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 2: ALL FORMS (SAAS DASHBOARD GRID) -->
+    <div id="admin-all-forms-section" style="display:none;">
+      
+      <!-- Locked Gate (Shown before uploader verification) -->
+      <div id="all-forms-locked-gate" style="display:none; text-align:center; padding:4rem 1.5rem; background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; box-shadow:0 10px 25px -5px rgba(0,0,0,0.05); max-width:520px; margin:2rem auto;">
+        <div style="width:52px; height:52px; border-radius:12px; background:#fff7ed; border:1px solid #fed7aa; color:#ea580c; display:flex; align-items:center; justify-content:center; font-size:1.4rem; margin:0 auto 1.25rem;">
+          <i class="fas fa-lock"></i>
+        </div>
+        <h3 style="font-size:1.3rem; font-weight:800; color:#0f172a; margin-bottom:0.4rem;">Event Uploader Access Required</h3>
+        <p style="font-size:0.88rem; color:#64748b; line-height:1.5; margin-bottom:1.5rem;">
+          Event registration forms and attendee records are private. Verify your official email address to view and manage your forms.
+        </p>
+        <button class="btn btn-primary" onclick="window.yuvaAdmin.openAuthModal()" style="height:44px; padding:0 1.5rem; font-weight:700; border-radius:8px; background:#ea580c; border:none; color:#fff; cursor:pointer;">
+          <i class="fas fa-arrow-right-to-bracket" style="margin-right:6px;"></i> Verify &amp; Unlock My Forms
+        </button>
+      </div>
+
+      <!-- Authorized Content (Shown ONLY after uploader verification) -->
+      <div id="all-forms-authorized-content" style="display:none;">
+        <!-- Metrics Row -->
+        <div class="saas-metrics-row">
+          <div class="metric-card">
+            <div>
+              <div class="metric-data-title">Total Forms Created</div>
+              <div class="metric-data-value" id="metric-total-forms">0</div>
+            </div>
+            <div class="metric-icon-wrap saffron">
+              <i class="fas fa-file-signature"></i>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div>
+              <div class="metric-data-title">Total Submissions</div>
+              <div class="metric-data-value" id="metric-total-submissions">0</div>
+            </div>
+            <div class="metric-icon-wrap green">
+              <i class="fas fa-users"></i>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div>
+              <div class="metric-data-title">Active Database Events</div>
+              <div class="metric-data-value" id="metric-total-events">0</div>
+            </div>
+            <div class="metric-icon-wrap navy">
+              <i class="fas fa-calendar-check"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Forms Grid Header -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:1rem;">
+          <div>
+            <h2 style="font-size:1.25rem; font-weight:800; color:var(--navy-primary);">Published Registration Forms</h2>
+            <p style="font-size:0.85rem; color:var(--text-muted);">Manage all dynamic forms currently deployed in Supabase.</p>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="document.querySelector('.saas-tab-btn[data-tab=\'builder\']').click()">
+            <i class="fas fa-plus"></i> Create New Form
+          </button>
+        </div>
+
+        <!-- Forms Card Grid Container -->
+        <div class="forms-card-grid" id="forms-grid-container">
+          <!-- Rendered by app.js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: SUBMISSIONS EXPLORER -->
+    <div id="admin-submissions-section" style="display:none;">
+      
+      <!-- Locked Gate (Shown before uploader verification) -->
+      <div id="submissions-locked-gate" style="display:none; text-align:center; padding:4rem 1.5rem; background:#ffffff; border:1px solid #e2e8f0; border-radius:16px; box-shadow:0 10px 25px -5px rgba(0,0,0,0.05); max-width:520px; margin:2rem auto;">
+        <div style="width:52px; height:52px; border-radius:12px; background:#fff7ed; border:1px solid #fed7aa; color:#ea580c; display:flex; align-items:center; justify-content:center; font-size:1.4rem; margin:0 auto 1.25rem;">
+          <i class="fas fa-user-shield"></i>
+        </div>
+        <h3 style="font-size:1.3rem; font-weight:800; color:#0f172a; margin-bottom:0.4rem;">Participant Records Locked</h3>
+        <p style="font-size:0.88rem; color:#64748b; line-height:1.5; margin-bottom:1.5rem;">
+          Delegate and participant registration data is strictly private. Verify your email to view your event submissions.
+        </p>
+        <button class="btn btn-primary" onclick="window.yuvaAdmin.openAuthModal()" style="height:44px; padding:0 1.5rem; font-weight:700; border-radius:8px; background:#ea580c; border:none; color:#fff; cursor:pointer;">
+          <i class="fas fa-arrow-right-to-bracket" style="margin-right:6px;"></i> Verify &amp; View Submissions
+        </button>
+      </div>
+
+      <!-- Authorized Content (Shown ONLY after uploader verification) -->
+      <div id="submissions-authorized-content" style="display:none;">
+        <div class="saas-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:1rem;">
+            <div>
+              <h2 style="font-size:1.25rem; font-weight:800; color:var(--navy-primary);">Delegate &amp; Participant Submissions</h2>
+              <p style="font-size:0.85rem; color:var(--text-muted);">Real-time participant data stored in Supabase <code class="mono">form_submissions</code> table.</p>
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <button class="btn btn-secondary btn-sm" id="export-submissions-csv-btn">
+                <i class="fas fa-file-csv"></i> Export CSV
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="window.yuvaAdmin.loadSubmissions()">
+                <i class="fas fa-rotate"></i> Refresh
+              </button>
+            </div>
+          </div>
+
+          <!-- Submissions Table -->
+          <div class="table-responsive">
+            <table class="saas-table" id="submissions-data-table">
+              <thead>
+                <tr>
+                  <th>Submission ID</th>
+                  <th>Form</th>
+                  <th>Participant</th>
+                  <th>Email</th>
+                  <th>Mobile</th>
+                  <th>Submitted At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="submissions-table-body">
+                <!-- Loaded via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: EVENT UPLOADER EMAIL OTP VERIFICATION -->
+  <div class="modal-overlay" id="organizer-auth-modal">
+    <div class="auth-modal-card">
+      <div class="auth-header">
+        <div style="display:flex; align-items:flex-start; gap:0.85rem;">
+          <div class="auth-icon-badge">
+            <i class="fas fa-shield-halved"></i>
+          </div>
+          <div>
+            <span class="auth-security-pill"><i class="fas fa-lock"></i> Event Uploader Gate</span>
+            <h3 class="auth-title" id="auth-modal-title">Event Uploader Login</h3>
+            <p class="auth-subtitle" id="auth-modal-subtitle">Sign in to access and manage your event registration forms</p>
+          </div>
+        </div>
+        <button class="btn-icon" style="background:rgba(0,0,0,0.04); border:none; width:34px; height:34px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; color:var(--text-muted); cursor:pointer; transition:all 0.2s;" onclick="window.yuvaAdmin.closeModal('organizer-auth-modal')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="auth-info-banner" id="auth-info-banner-text">
+        <div class="auth-info-icon-wrap">
+          <i class="fas fa-key"></i>
+        </div>
+        <div id="auth-banner-description">
+          Enter your registered email address to log in. <strong>Approved uploaders log in instantly with 0 OTP</strong>. First-time users will complete a 1-time verification and profile registration.
+        </div>
+      </div>
+
+      <!-- STEP 1: EMAIL ENTRY -->
+      <form id="uploader-email-form" onsubmit="window.yuvaAdmin.handleSendVerificationCode(event)">
+        <div class="auth-input-group">
+          <label class="auth-label">
+            <span><i class="fas fa-envelope" style="color:var(--saffron-primary); margin-right:5px;"></i> Official Email Address</span>
+            <span class="auth-label-badge">Required</span>
+          </label>
+          <div class="auth-input-wrapper">
+            <i class="fas fa-envelope-open-text auth-input-icon"></i>
+            <input type="email" id="auth-organizer-email" required class="auth-input-control" placeholder="e.g. organizer@yuva.ind.in" autocomplete="email">
+          </div>
+        </div>
+
+        <div class="auth-footer">
+          <div class="auth-btn-row">
+            <button type="button" class="auth-btn-cancel" onclick="window.yuvaAdmin.closeModal('organizer-auth-modal')">Cancel</button>
+            <button type="submit" class="auth-btn-submit" id="btn-send-auth-code">
+              <i class="fas fa-arrow-right-to-bracket"></i> Continue / Log In
+            </button>
+          </div>
+          <div class="auth-security-tag">
+            <i class="fas fa-shield-check" style="color:#10b981;"></i> Approved Uploaders: Instant Access • First-time Users: 1-Time OTP &amp; Admin Approval
+          </div>
+        </div>
+      </form>
+
+      <!-- STEP 2: 6-DIGIT OTP ENTRY -->
+      <form id="uploader-code-form" style="display:none;" onsubmit="window.yuvaAdmin.handleVerifyCode(event)">
+        <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:0.75rem 1rem; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
+          <div style="font-size:0.84rem; color:#9a3412;">
+            Code sent to: <strong id="auth-code-sent-target" style="word-break:break-all;">-</strong>
+          </div>
+          <button type="button" onclick="window.yuvaAdmin.switchAuthStep('email')" style="background:none; border:none; color:#ea580c; font-weight:700; font-size:0.78rem; cursor:pointer; text-decoration:underline;">
+            Change
+          </button>
+        </div>
+
+        <div class="auth-input-group">
+          <label class="auth-label">
+            <span><i class="fas fa-shield-halved" style="color:var(--saffron-primary); margin-right:5px;"></i> Enter 6-Digit Code</span>
+            <span class="auth-label-badge" id="auth-countdown-badge">Expires in 10:00</span>
+          </label>
+          <div class="auth-input-wrapper">
+            <i class="fas fa-key auth-input-icon"></i>
+            <input type="text" id="auth-verification-code" required class="auth-input-control" placeholder="123456" maxlength="8" autocomplete="one-time-code" style="letter-spacing:4px; font-weight:800; font-family:'JetBrains Mono', monospace; font-size:1.15rem; text-align:center;">
+          </div>
+        </div>
+
+        <div class="auth-footer">
+          <div class="auth-btn-row">
+            <button type="button" class="auth-btn-cancel" id="btn-resend-auth-code" onclick="window.yuvaAdmin.handleResendCode()">
+              <i class="fas fa-redo"></i> Resend Code
+            </button>
+            <button type="submit" class="auth-btn-submit" id="btn-verify-auth-code">
+              <i class="fas fa-arrow-right-to-bracket"></i> Verify &amp; Unlock
+            </button>
+          </div>
+          <div class="auth-security-tag">
+            <i class="fas fa-check-circle" style="color:#10b981;"></i> Verified in Supabase Event Uploaders System
+          </div>
+        </div>
+      </form>
+
+      <!-- STEP 3: MANDATORY UPLOADER PROFILE REGISTRATION (NEW / INCOMPLETE PROFILES) -->
+      <form id="uploader-profile-form" style="display:none;" onsubmit="window.yuvaAdmin.handleSaveUploaderProfile(event)">
+        <div style="background:#fffdfa; border:1px solid #fed7aa; border-radius:10px; padding:0.75rem 1rem; margin-bottom:1.15rem;">
+          <div style="font-size:0.84rem; color:#9a3412; font-weight:700; display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-id-badge" style="color:#ea580c;"></i> Complete Official Uploader Profile
+          </div>
+          <p style="font-size:0.78rem; color:#64748b; margin-top:2px;">
+            Email <strong id="auth-profile-email-badge" style="color:#1e293b;">-</strong> verified. Please provide your official credentials to activate full portal access.
+          </p>
+        </div>
+
+        <div class="auth-input-group">
+          <label class="auth-label">
+            <span><i class="fas fa-user" style="color:var(--saffron-primary); margin-right:5px;"></i> Legal Full Name</span>
+            <span class="auth-label-badge">Required</span>
+          </label>
+          <div class="auth-input-wrapper">
+            <i class="fas fa-id-card auth-input-icon"></i>
+            <input type="text" id="auth-uploader-name" required class="auth-input-control" placeholder="e.g. Ramesh Sharma" minlength="2">
+          </div>
+        </div>
+
+        <div class="auth-input-group">
+          <label class="auth-label">
+            <span><i class="fas fa-phone" style="color:var(--green-primary); margin-right:5px;"></i> Mobile / WhatsApp Number</span>
+            <span class="auth-label-badge">10 Digits</span>
+          </label>
+          <div class="auth-input-wrapper">
+            <i class="fas fa-mobile-screen-button auth-input-icon"></i>
+            <input type="tel" id="auth-uploader-phone" required class="auth-input-control" placeholder="e.g. 9876543210" maxlength="13">
+          </div>
+        </div>
+
+        <div class="auth-input-group">
+          <label class="auth-label">
+            <span><i class="fas fa-briefcase" style="color:var(--saffron-primary); margin-right:5px;"></i> Designation / Role in YUVA</span>
+            <span class="auth-label-badge">Required</span>
+          </label>
+          <div class="auth-input-wrapper">
+            <i class="fas fa-award auth-input-icon"></i>
+            <input type="text" id="auth-uploader-role" required class="auth-input-control" placeholder="e.g. State Lead, Central Team, Unit Coordinator" minlength="2">
+          </div>
+        </div>
+
+        <div class="auth-footer">
+          <div class="auth-btn-row">
+            <button type="button" class="auth-btn-cancel" onclick="window.yuvaAdmin.cancelProfileRegistration()">Cancel &amp; Exit</button>
+            <button type="submit" class="auth-btn-submit" id="btn-save-profile">
+              <i class="fas fa-check-circle"></i> Save &amp; Activate Access
+            </button>
+          </div>
+          <div class="auth-security-tag">
+            <i class="fas fa-shield-check" style="color:#10b981;"></i> Traceable Credentials Registered in Supabase
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: PARTICIPANT SUBMISSION RESPONSE DETAILS -->
+  <div class="modal-overlay" id="submission-detail-modal">
+    <div class="modal-box" style="max-width:620px; width:95%; max-height:85vh; display:flex; flex-direction:column; padding:0; overflow:hidden; border-radius:16px; border:1px solid #e2e8f0; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15);">
+      <div style="background:#ffffff; color:#0f172a; padding:1.15rem 1.4rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0;">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <div style="width:40px; height:40px; border-radius:10px; background:#fff7ed; border:1px solid #fed7aa; color:#ea580c; display:flex; align-items:center; justify-content:center; font-size:1.15rem;">
+            <i class="fas fa-id-card-clip"></i>
+          </div>
+          <div>
+            <div style="font-size:1.1rem; font-weight:800; color:var(--navy-primary);" id="sub-detail-name">Participant Record</div>
+            <div style="font-size:0.78rem; font-weight:700; color:#ea580c; font-family:monospace;" id="sub-detail-ref">REF: ------</div>
+          </div>
+        </div>
+        <button class="btn-icon" style="color:#64748b; background:#f1f5f9; border-radius:8px; width:34px; height:34px; border:1px solid #e2e8f0; cursor:pointer;" onclick="window.yuvaAdmin.closeModal('submission-detail-modal')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div style="padding:1.5rem; overflow-y:auto; flex:1;" id="sub-detail-body">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="modal-footer" style="background:#f8fafc; border-top:1px solid #e2e8f0; padding:0.85rem 1.25rem; justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="window.yuvaAdmin.closeModal('submission-detail-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PUBLISH SUCCESS & VERIFICATION NOTICE -->
+  <div class="modal-overlay" id="publish-success-modal">
+    <div class="modal-box" style="text-align:center; max-width:520px; border:1px solid #e2e8f0; border-radius:16px;">
+      <div class="modal-header" style="justify-content:center; border:none; padding-bottom:0;">
+        <div class="success-icon-wrap" style="margin:0.5rem auto 0; width:52px; height:52px; font-size:1.5rem; background:#fff7ed; border:1px solid #fed7aa; color:#ea580c;">
+          <i class="fas fa-check-circle"></i>
+        </div>
+      </div>
+      <div class="modal-body" style="padding-top:0.75rem;">
+        <h3 style="font-size:1.35rem; font-weight:800; color:var(--navy-primary); margin-bottom:0.35rem;">Form Saved &amp; Submitted</h3>
+        <p style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:1rem; line-height:1.5;">
+          Your form schema and organizer contact details have been successfully recorded in the database.
+        </p>
+
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:0.75rem 1rem; margin-bottom:1.25rem; font-size:0.82rem; color:#92400e; text-align:left; display:flex; align-items:flex-start; gap:0.6rem;">
+          <i class="fas fa-info-circle" style="color:#d97706; margin-top:2px;"></i>
+          <div>
+            <strong>Status: Under Review / Pending Verification</strong><br>
+            Public registrations will activate as soon as this form is verified and passed by the administration.
+          </div>
+        </div>
+
+        <div class="floating-group is-filled" style="margin-bottom:0.5rem;">
+          <input type="text" id="modal-published-url" class="floating-input mono" readonly>
+          <label class="floating-label">Form Registration Link</label>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:center; gap:0.75rem; flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('modal-published-url').value); Toast.success('Copied!', 'Form link copied to clipboard.');">
+          <i class="fas fa-copy"></i> Copy Link
+        </button>
+        <button id="modal-open-form-btn" class="btn btn-primary" onclick="window.yuvaAdmin.openInAppPreviewModal()">
+          <i class="fas fa-eye"></i> Preview Form (In Studio)
+        </button>
+        <button class="btn btn-secondary" onclick="window.yuvaAdmin.closeModal('publish-success-modal')">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: IN-STUDIO FULL PREVIEW (SUPER ADMIN PASS) -->
+  <div class="modal-overlay" id="admin-in-app-preview-modal">
+    <div class="modal-box" style="max-width:860px; width:95%; max-height:90vh; display:flex; flex-direction:column; padding:0; overflow:hidden; border-radius:16px; border:1px solid #e2e8f0; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+      <div style="background:#ffffff; color:#0f172a; padding:1rem 1.4rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0;">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <div style="width:38px; height:38px; border-radius:10px; background:#fff7ed; border:1px solid #fed7aa; color:#ea580c; display:flex; align-items:center; justify-content:center; font-size:1.1rem;">
+            <i class="fas fa-eye"></i>
+          </div>
+          <div>
+            <div style="font-size:1rem; font-weight:800; color:var(--navy-primary); display:flex; align-items:center; gap:0.5rem; letter-spacing:-0.01em;">
+              <span>In-Studio Form Preview</span>
+              <span style="font-size:0.68rem; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; padding:2px 8px; border-radius:12px; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+                <i class="fas fa-shield-alt" style="font-size:9px;"></i> Super Admin Pass
+              </span>
+            </div>
+            <div style="font-size:0.75rem; color:#64748b;">Interactive live test preview rendered inside Studio</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <div class="simulator-controls" style="margin-right:0.5rem; background:#f1f5f9; border:1px solid #e2e8f0; padding:3px; border-radius:8px; display:inline-flex; gap:3px;">
+            <button class="preview-device-btn in-modal active" data-device="desktop" title="Desktop view" onclick="window.yuvaAdmin.setModalPreviewDevice('desktop', this)"><i class="fas fa-desktop"></i></button>
+            <button class="preview-device-btn in-modal" data-device="tablet" title="Tablet view" onclick="window.yuvaAdmin.setModalPreviewDevice('tablet', this)"><i class="fas fa-tablet-alt"></i></button>
+            <button class="preview-device-btn in-modal" data-device="mobile" title="Mobile view" onclick="window.yuvaAdmin.setModalPreviewDevice('mobile', this)"><i class="fas fa-mobile-alt"></i></button>
+          </div>
+          <button class="btn-icon" style="color:#64748b; background:#f1f5f9; border-radius:8px; width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid #e2e8f0; transition:all 0.2s;" onclick="window.yuvaAdmin.closeModal('admin-in-app-preview-modal')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+      <div class="modal-body-scroll" style="background:#f8fafc; padding:2rem 1.25rem; overflow-y:auto; flex:1; display:flex; justify-content:center; align-items:flex-start;">
+        <div id="in-modal-form-frame" style="width:100%; max-width:680px; background:#ffffff; border-radius:16px; border:1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.02); padding:2.25rem 2rem; transition:max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div id="in-modal-preview-content">
+            <!-- Dynamically populated by app.js -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Floating Action Button (Quick Save on Mobile) -->
+  <button class="mobile-fab" id="mobile-save-fab" title="Save & Publish Form" onclick="document.getElementById('admin-save-form-btn').click()">
+    <i class="fas fa-cloud-arrow-up"></i>
+    <span class="fab-tooltip">Save &amp; Publish</span>
+  </button>
+
+  <!-- Scripts -->
+  <script src="config.js?v=2026.08.21.28"></script>
+  <script src="app.js?v=2026.08.21.28"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      window.yuvaAdmin = new AdminFormBuilder();
+    });
+
+    // Mobile panel switcher logic for 3-column builder (switches in place without scroll jump)
+    function switchMobilePanel(panel, btn) {
+      document.querySelectorAll('.mobile-panel-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      
+      document.querySelectorAll('.mobile-panel-section').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById('panel-' + panel);
+      if (target) target.classList.add('active');
+    }
+
+    // Window resize handler: restore display states if resized to desktop
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768) {
+        document.querySelectorAll('.mobile-panel-section').forEach(p => p.classList.remove('active'));
+      } else {
+        // Ensure at least one panel is active on mobile
+        const hasActive = document.querySelector('.mobile-panel-section.active');
+        if (!hasActive) {
+          const firstBtn = document.querySelector('.mobile-panel-btn');
+          switchMobilePanel('toolbox', firstBtn);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
