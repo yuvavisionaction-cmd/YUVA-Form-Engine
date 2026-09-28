@@ -23,6 +23,7 @@ const YUVA_FORMS_CONFIG = {
     mainWebsiteUrl: 'https://yuva.ind.in',
     upcomingEventsUrl: 'https://yuva.ind.in/Events/Upcoming.html',
     homeUrl: 'https://yuva.ind.in/home.html',
+    contactUrl: 'https://yuva.ind.in/About/ContactUs.html',
     // Dynamic fallback for localhost / development
     getBaseUrl: () => {
       if (typeof window !== 'undefined' && window.location) {

@@ -88,6 +88,210 @@
       .replace(/\-\-+/g, '-');
   }
 
+  // ===== EMAIL TYPO & DOMAIN AUTOCORRECT HELPER =====
+  const EmailValidatorHelper = {
+    // Known domain typos mapping to correct domains
+    domainTypos: {
+      'gmail.con': 'gmail.com',
+      'gmai.com': 'gmail.com',
+      'gmaill.com': 'gmail.com',
+      'gamil.com': 'gmail.com',
+      'gmal.com': 'gmail.com',
+      'gmial.com': 'gmail.com',
+      'gmai.con': 'gmail.com',
+      'gmaik.com': 'gmail.com',
+      'gmaul.com': 'gmail.com',
+      'gmai.co': 'gmail.com',
+      'gmaio.com': 'gmail.com',
+      'gmaol.com': 'gmail.com',
+      'gnail.com': 'gmail.com',
+      'gmali.com': 'gmail.com',
+      'gmil.com': 'gmail.com',
+      'gmaili.com': 'gmail.com',
+      'gamail.com': 'gmail.com',
+      'gmai.in': 'gmail.com',
+      'gmail.co': 'gmail.com',
+      'gmail.cpm': 'gmail.com',
+      'gmail.ocm': 'gmail.com',
+      'gmail.vom': 'gmail.com',
+      'gmail.xom': 'gmail.com',
+      'gmail.comm': 'gmail.com',
+      'gmail.coom': 'gmail.com',
+      'gmail.comp': 'gmail.com',
+      'gmail.clm': 'gmail.com',
+      
+      'yahoo.con': 'yahoo.com',
+      'yaho.com': 'yahoo.com',
+      'yahooo.com': 'yahoo.com',
+      'yhaoo.com': 'yahoo.com',
+      'yahuo.com': 'yahoo.com',
+      'yaho.co.in': 'yahoo.co.in',
+      'yaho.co': 'yahoo.com',
+      'yahoo.cpm': 'yahoo.com',
+      'yahoo.ocm': 'yahoo.com',
+      'yahoo.comm': 'yahoo.com',
+      
+      'hotmail.con': 'hotmail.com',
+      'hotmial.com': 'hotmail.com',
+      'hotmaill.com': 'hotmail.com',
+      'hotmai.com': 'hotmail.com',
+      'hotmil.com': 'hotmail.com',
+      'hotmali.com': 'hotmail.com',
+      'hotmial.co': 'hotmail.com',
+      'homtail.com': 'hotmail.com',
+      'hotmail.cpm': 'hotmail.com',
+      'hotmail.comm': 'hotmail.com',
+      
+      'outlook.con': 'outlook.com',
+      'outlok.com': 'outlook.com',
+      'outloo.com': 'outlook.com',
+      'outlock.com': 'outlook.com',
+      'ootlook.com': 'outlook.com',
+      'outluk.com': 'outlook.com',
+      'outllok.com': 'outlook.com',
+      'outlook.cpm': 'outlook.com',
+      'outlook.comm': 'outlook.com',
+      
+      'icloud.con': 'icloud.com',
+      'iclud.com': 'icloud.com',
+      'icoud.com': 'icloud.com',
+      'iclaud.com': 'icloud.com',
+      'ikcloud.com': 'icloud.com',
+      'icloud.cpm': 'icloud.com',
+      
+      'rediffmail.con': 'rediffmail.com',
+      'rediffmai.com': 'rediffmail.com',
+      'rediffmial.com': 'rediffmail.com',
+      'redifmail.com': 'rediffmail.com',
+      'rediff.com': 'rediffmail.com',
+      
+      'googlemail.con': 'googlemail.com',
+      'googlemial.com': 'googlemail.com',
+      'googlemail.co': 'googlemail.com',
+      
+      'live.con': 'live.com',
+      'live.cpm': 'live.com',
+      'zoho.con': 'zoho.com',
+      'zoho.cpm': 'zoho.com',
+      'zohomail.con': 'zoho.com',
+      'protonmail.con': 'protonmail.com',
+      'proton.con': 'proton.me'
+    },
+
+    // Known popular domains list
+    popularDomains: [
+      'gmail.com',
+      'yahoo.com',
+      'yahoo.co.in',
+      'outlook.com',
+      'hotmail.com',
+      'icloud.com',
+      'rediffmail.com',
+      'live.com',
+      'zoho.com',
+      'proton.me',
+      'protonmail.com'
+    ],
+
+    // Common TLD typos mapping
+    tldTypos: {
+      'con': 'com',
+      'cpm': 'com',
+      'ocm': 'com',
+      'vom': 'com',
+      'xom': 'com',
+      'comm': 'com',
+      'coom': 'com',
+      'comp': 'com',
+      'clm': 'com',
+      'cok': 'com',
+      'og': 'org',
+      'ogr': 'org',
+      'orgg': 'org',
+      'ne': 'net',
+      'nte': 'net',
+      'netw': 'net',
+      'nett': 'net',
+      'ed': 'edu',
+      'eduu': 'edu',
+      'i': 'in',
+      'im': 'in',
+      'ik': 'in'
+    },
+
+    levenshteinDistance(a, b) {
+      const matrix = [];
+      for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+      }
+      for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+      }
+      for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+          if (b.charAt(i - 1) === a.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+            );
+          }
+        }
+      }
+      return matrix[b.length][a.length];
+    },
+
+    suggest(email) {
+      if (!email || typeof email !== 'string') return null;
+      const cleanEmail = email.trim();
+      const atIdx = cleanEmail.lastIndexOf('@');
+      if (atIdx === -1 || atIdx === 0 || atIdx === cleanEmail.length - 1) return null;
+
+      const user = cleanEmail.substring(0, atIdx);
+      let domain = cleanEmail.substring(atIdx + 1).toLowerCase();
+
+      // Check if user or domain has spaces or invalid symbols
+      if (/\s/.test(user) || /\s/.test(domain)) return null;
+
+      // 1. Direct domain typo match
+      if (this.domainTypos[domain]) {
+        const corrected = `${user}@${this.domainTypos[domain]}`;
+        if (corrected.toLowerCase() !== cleanEmail.toLowerCase()) {
+          return { original: cleanEmail, suggested: corrected, targetDomain: this.domainTypos[domain] };
+        }
+      }
+
+      // 2. TLD typo check
+      const lastDot = domain.lastIndexOf('.');
+      if (lastDot !== -1 && lastDot < domain.length - 1) {
+        const domainBase = domain.substring(0, lastDot);
+        const tld = domain.substring(lastDot + 1);
+
+        if (this.tldTypos[tld]) {
+          const newTld = this.tldTypos[tld];
+          const newDomain = `${domainBase}.${newTld}`;
+          const corrected = `${user}@${newDomain}`;
+          if (corrected.toLowerCase() !== cleanEmail.toLowerCase()) {
+            return { original: cleanEmail, suggested: corrected, targetDomain: newDomain };
+          }
+        }
+      }
+
+      // 3. Levenshtein distance check against popular domains
+      for (const popDomain of this.popularDomains) {
+        if (domain === popDomain) return null; // exact match
+        const dist = this.levenshteinDistance(domain, popDomain);
+        if (dist > 0 && dist <= 2 && domain.length >= 4) {
+          const corrected = `${user}@${popDomain}`;
+          return { original: cleanEmail, suggested: corrected, targetDomain: popDomain };
+        }
+      }
+
+      return null;
+    }
+  };
+
   // Helper: Generate clean, concise, short SaaS Form ID
   function generateFormId(title, eventId) {
     if (eventId) {
@@ -750,7 +954,7 @@
           label: 'Email Address',
           placeholder: 'you@example.com',
           required: true,
-          helpText: 'Confirmation email will be dispatched to this address',
+          helpText: 'Please ensure your mailbox/Gmail has sufficient free storage to receive your confirmation.',
           validationRegex: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$',
           errorMessage: 'Please enter a valid email address'
         });
@@ -1197,7 +1401,7 @@
         label: this.getDefaultLabel(type, fieldCount),
         placeholder: this.getDefaultPlaceholder(type),
         required: true,
-        helpText: '',
+        helpText: type === 'email' ? 'Please ensure your email inbox/Gmail has sufficient free storage space.' : '',
         validationRegex: defaultRegex,
         errorMessage: defaultError,
         options: (type === 'select' || type === 'radio' || type === 'checkbox') ? ['Option 1', 'Option 2', 'Option 3'] : [],
@@ -1739,6 +1943,9 @@
         input.addEventListener('change', validate);
         input.addEventListener('blur', validate);
       });
+
+      // Attach email typo suggestions in preview
+      YuvaFormRenderer.bindEmailInteractions(dummyForm);
     }
 
     updateGeneratedLinks() {
@@ -1951,6 +2158,9 @@
         input.addEventListener('change', validate);
         input.addEventListener('blur', validate);
       });
+
+      // Attach email typo suggestions in in-app modal preview
+      YuvaFormRenderer.bindEmailInteractions(container);
 
       this.openModal('admin-in-app-preview-modal');
     }
@@ -3854,6 +4064,43 @@
           `;
         }
 
+        // Specialized handling for Email field (includes storage warning and typo suggestion UI)
+        if (field.type === 'email' || field.id === 'field_email') {
+          const patternAttr = field.validationRegex ? `data-regex="${escapeHtml(field.validationRegex)}" data-error-msg="${escapeHtml(field.errorMessage || '')}"` : `data-regex="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$" data-error-msg="Please enter a valid email address"`;
+          return `
+            <div class="form-field-group form-field-email-group" data-field-id="${fieldId}">
+              <label for="${fieldId}" class="form-field-label">${escapeHtml(field.label)} ${reqStar}</label>
+              
+              <div class="field-email-notice">
+                <div class="field-email-notice-icon">
+                  <i class="fas fa-database"></i>
+                </div>
+                <div class="field-email-notice-content">
+                  <strong>Mailbox Storage Reminder:</strong> Please ensure your Gmail/email inbox has sufficient free storage space. If your mailbox is full, you will not receive your registration confirmation, pass, or updates.
+                </div>
+              </div>
+
+              <input type="email" id="${fieldId}" name="${fieldId}" class="form-field-input email-field-input" 
+                data-field-type="email" autocomplete="email" placeholder="${placeholderText || 'you@example.com'}" ${isRequired} ${patternAttr}>
+
+              <div class="email-suggestion-box" id="email-suggest-${fieldId}" style="display:none;" data-for-input="${fieldId}">
+                <div class="email-suggest-inner">
+                  <div class="email-suggest-label">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                    <span>Did you mean <strong class="suggested-email-text"></strong>?</span>
+                  </div>
+                  <button type="button" class="btn-email-apply" data-target-input="${fieldId}">
+                    <i class="fas fa-check"></i> Apply Fix
+                  </button>
+                </div>
+              </div>
+
+              ${field.helpText ? `<div class="field-help"><i class="fas fa-info-circle"></i> ${escapeHtml(field.helpText)}</div>` : ''}
+              <div class="field-error"><i class="fas fa-exclamation-triangle"></i> ${escapeHtml(field.errorMessage || 'Please enter a valid email address')}</div>
+            </div>
+          `;
+        }
+
         // Standard Text, Email, Phone, Number, Date, Time, DateTime, URL, etc.
         const inputType = field.type === 'phone' ? 'tel' : 
                           field.type === 'time' ? 'time' : 
@@ -3913,6 +4160,64 @@
           this.validateSingleInput(input);
         });
       });
+
+      // Bind email typo suggestions in live renderer
+      YuvaFormRenderer.bindEmailInteractions(document.getElementById('rendered-form-fields') || document);
+    }
+
+    static bindEmailInteractions(container) {
+      if (!container) return;
+      const emailInputs = container.querySelectorAll('input[type="email"], input[data-field-type="email"]');
+      emailInputs.forEach(input => {
+        const group = input.closest('.form-field-group, .floating-group') || input.parentElement;
+        if (!group) return;
+        const suggestBox = group.querySelector('.email-suggestion-box') || document.getElementById(`email-suggest-${input.id}`);
+        if (!suggestBox) return;
+        const suggestText = suggestBox.querySelector('.suggested-email-text');
+        const applyBtn = suggestBox.querySelector('.btn-email-apply');
+
+        let currentSuggestion = null;
+
+        const updateSuggestion = () => {
+          const val = input.value.trim();
+          if (!val) {
+            suggestBox.style.display = 'none';
+            currentSuggestion = null;
+            return;
+          }
+
+          const res = EmailValidatorHelper.suggest(val);
+          if (res && res.suggested && res.suggested.toLowerCase() !== val.toLowerCase()) {
+            currentSuggestion = res.suggested;
+            if (suggestText) suggestText.textContent = res.suggested;
+            suggestBox.style.display = 'block';
+          } else {
+            suggestBox.style.display = 'none';
+            currentSuggestion = null;
+          }
+        };
+
+        input.addEventListener('input', updateSuggestion);
+        input.addEventListener('blur', updateSuggestion);
+        input.addEventListener('change', updateSuggestion);
+
+        if (applyBtn && !applyBtn._hasBoundClick) {
+          applyBtn._hasBoundClick = true;
+          applyBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (currentSuggestion) {
+              input.value = currentSuggestion;
+              suggestBox.style.display = 'none';
+              currentSuggestion = null;
+              input.classList.add('suggest-applied-flash');
+              setTimeout(() => input.classList.remove('suggest-applied-flash'), 900);
+              YuvaFormRenderer.prototype.validateSingleInput(input);
+              Toast.success('Email Corrected', `Updated to ${input.value}`);
+            }
+          });
+        }
+      });
     }
 
     handleFileSelected(fileInput) {
@@ -3955,6 +4260,7 @@
 
       const val = input.value.trim();
       const isRequired = input.hasAttribute('required');
+      const isEmail = input.type === 'email' || input.getAttribute('data-field-type') === 'email' || input.name?.includes('email') || input.id?.includes('email');
       const regexPattern = input.getAttribute('data-regex');
       const errEl = group.querySelector('.field-error');
 
@@ -3964,6 +4270,21 @@
           errEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> This field is required';
         }
         return false;
+      }
+
+      if (isEmail && val) {
+        // Specific check for obvious typo TLDs like .con
+        if (/\.[a-zA-Z]+$/.test(val)) {
+          const tldMatch = val.match(/\.([a-zA-Z]+)$/);
+          const tld = tldMatch ? tldMatch[1].toLowerCase() : '';
+          if (['con', 'cpm', 'ocm', 'vom', 'xom', 'coom', 'comm', 'comp', 'clm', 'cok'].includes(tld)) {
+            group.classList.add('has-error');
+            if (errEl) {
+              errEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Invalid email domain: Did you mean <strong>.${tld === 'con' ? 'com' : 'com'}</strong> instead of <strong>.${tld}</strong>?`;
+            }
+            return false;
+          }
+        }
       }
 
       if (regexPattern && val) {
@@ -4122,33 +4443,79 @@
       const successState = document.getElementById('form-success-state');
       const refCodeEl = document.getElementById('success-ref-code');
       const msgEl = document.getElementById('success-custom-message');
+      const headingEl = document.getElementById('success-state-heading') || successState?.querySelector('h2');
+      const iconWrapEl = document.getElementById('success-icon-wrap') || successState?.querySelector('.success-icon-wrap');
+      const emailNoticeEl = document.getElementById('success-email-notice');
 
       if (wrapper) wrapper.style.display = 'none';
       if (refCodeEl) refCodeEl.textContent = refCode;
 
       if (isDuplicate) {
         // Already registered — show warm amber message with original ref
-        const heading = successState?.querySelector('h2');
-        if (heading) {
-          heading.textContent = 'Already Registered!';
-          heading.style.color = 'var(--saffron-primary, #FF9933)';
+        if (headingEl) {
+          headingEl.textContent = 'Already Registered!';
+          headingEl.style.color = 'var(--saffron-dark, #ea580c)';
+        }
+        if (iconWrapEl) {
+          iconWrapEl.innerHTML = '<i class="fas fa-user-check"></i>';
+          iconWrapEl.style.background = 'var(--saffron-pale, #fff5eb)';
+          iconWrapEl.style.borderColor = 'var(--saffron-light, #ffb366)';
+          iconWrapEl.style.color = 'var(--saffron-dark, #ea580c)';
+        }
+        if (emailNoticeEl) {
+          emailNoticeEl.innerHTML = '<i class="fas fa-shield-alt" style="color:var(--saffron-primary);"></i> Your existing registration details are securely saved in the database.';
         }
         if (msgEl) {
-          msgEl.textContent = 'You are already registered for this event. Your original confirmation has been resent to your email.';
+          msgEl.textContent = 'You are already registered for this event with this email address. Your existing reference number is displayed below.';
         }
-        Toast.warning('Already Registered', 'Your original confirmation has been resent to your email.');
-      } else if (msgEl && this.formSchema.settings?.confirmationMessage) {
-        msgEl.textContent = this.formSchema.settings.confirmationMessage;
+        Toast.warning('Already Registered', 'You are already registered for this event with this email.');
+      } else {
+        // First-time registration confirmed
+        if (headingEl) {
+          headingEl.textContent = 'Registration Confirmed!';
+          headingEl.style.color = 'var(--navy-primary, #000080)';
+        }
+        if (iconWrapEl) {
+          iconWrapEl.innerHTML = '<i class="fas fa-check"></i>';
+          iconWrapEl.style.background = 'var(--green-pale, #f0fdf4)';
+          iconWrapEl.style.borderColor = 'var(--green-light, #22c55e)';
+          iconWrapEl.style.color = 'var(--green-primary, #138808)';
+        }
+        if (emailNoticeEl) {
+          emailNoticeEl.innerHTML = '<i class="fas fa-envelope" style="color:var(--saffron-primary);"></i> A confirmation email has been dispatched to your email address.';
+        }
+        if (msgEl) {
+          msgEl.textContent = this.formSchema?.settings?.confirmationMessage || 'Thank you for registering. Your application has been recorded in the central database.';
+        }
+        Toast.success('Registration Complete!', 'Confirmation email sent to your inbox.');
       }
 
       if (successState) {
         successState.style.display = 'block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+    }
 
-      Toast.success('Registration Complete!', 'Confirmation email sent to your inbox.');
+    testSuccess(refCode = 'YB-SAMPLE-2026', isDuplicate = false) {
+      if (!this.formSchema) {
+        this.formSchema = {
+          title: 'Sample Event Registration',
+          settings: { confirmationMessage: 'Thank you for registering. Your application has been recorded in the central database.' }
+        };
+      }
+      this.displaySuccessState({ id: 'test-record-id-123' }, refCode, isDuplicate);
     }
   }
+
+  // Helper trigger command to test success state anytime
+  window.triggerSuccessTest = (refCode = 'YB-DEMO-2026', isDuplicate = false) => {
+    if (window.yuvaRenderer && typeof window.yuvaRenderer.testSuccess === 'function') {
+      window.yuvaRenderer.testSuccess(refCode, isDuplicate);
+    } else {
+      const renderer = new YuvaFormRenderer();
+      renderer.testSuccess(refCode, isDuplicate);
+    }
+  };
 
   // Export globally to window
   window.Toast = Toast;

@@ -420,7 +420,7 @@ function handleSubmitForm(submission) {
 
   // ── DUPLICATE GUARD ──────────────────────────────────────────────────────
   // Prevent same email registering twice for the same form.
-  // If a record already exists, resend the original confirmation and return.
+  // If a record already exists, return existing reference without sending duplicate emails.
   if (emailAddr && emailAddr.includes('@')) {
     try {
       const existing = supabaseRest(
@@ -430,36 +430,13 @@ function handleSubmitForm(submission) {
       if (Array.isArray(existing) && existing.length > 0) {
         const existingRecord = existing[0];
         const existingRef = existingRecord.id.substring(0, 8).toUpperCase();
-        console.log(`[Code.gs] DUPLICATE detected for ${emailAddr} on form ${submission.form_id} — existing ref: ${existingRef}`);
-
-        // Resend the original confirmation email
-        if (CONFIG.ENABLE_PARTICIPANT_EMAIL) {
-          try {
-            sendEventConfirmationEmail({
-              form_id:              submission.form_id,
-              form_title:           submission.form_title || 'Registration Form',
-              event_title:          submission.event_title || submission.form_title || 'Event Registration',
-              event_date:           submission.event_date || '',
-              event_location:       submission.event_location || '',
-              confirmation_message: 'You were already registered! Here is your original confirmation.',
-              submission_id:        existingRef,
-              participant_name:     submissionPayload.participant_name,
-              participant_email:    emailAddr,
-              participant_phone:    submissionPayload.participant_phone,
-              responses:            submissionPayload.responses_json,
-              files:                submissionPayload.files_json,
-              submitted_at:         existingRecord.created_at
-            });
-          } catch (dupEmailErr) {
-            console.error('[Code.gs] Duplicate resend email FAILED:', dupEmailErr.toString());
-          }
-        }
+        console.log(`[Code.gs] DUPLICATE detected for ${emailAddr} on form ${submission.form_id} — existing ref: ${existingRef}. No duplicate email triggered.`);
 
         return {
           submission_id: existingRef,
           record: existingRecord,
           duplicate: true,
-          message: 'Already registered. Original confirmation resent.'
+          message: 'Already registered with this email address. Existing reference preserved.'
         };
       }
     } catch (dupCheckErr) {

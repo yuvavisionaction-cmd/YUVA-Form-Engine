@@ -157,11 +157,11 @@
 
       <!-- Success State Card -->
       <div id="form-success-state" class="saas-card success-card" style="display:none;">
-        <div class="success-icon-wrap">
+        <div class="success-icon-wrap" id="success-icon-wrap">
           <i class="fas fa-check"></i>
         </div>
-        <h2 style="font-size:1.85rem; font-weight:800; color:var(--navy-primary); margin-bottom:0.5rem;">Registration Confirmed!</h2>
-        <p id="success-custom-message" style="font-size:0.95rem; color:var(--text-secondary); max-width:540px; margin:0 auto;">
+        <h2 id="success-state-heading" style="font-size:1.85rem; font-weight:800; color:var(--navy-primary); margin-bottom:0.5rem;">Registration Confirmed!</h2>
+        <p id="success-custom-message" style="font-size:0.95rem; color:var(--text-secondary); max-width:540px; margin:0 auto; line-height:1.5;">
           Thank you for registering. Your application has been recorded in the central database.
         </p>
 
@@ -170,17 +170,39 @@
             Registration Reference Number
           </div>
           <div id="success-ref-code" class="reference-code mono">------</div>
-          <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.4rem;">
+          <div id="success-email-notice" style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.4rem;">
             <i class="fas fa-envelope" style="color:var(--saffron-primary);"></i> A confirmation email has been dispatched to your email address.
+          </div>
+
+          <!-- Email delivery caution & screenshot advisory -->
+          <div class="success-storage-warning" style="margin-top:0.85rem; padding:0.75rem 0.95rem; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; font-size:0.82rem; color:#9a3412; text-align:left; display:flex; align-items:flex-start; gap:0.6rem; line-height:1.5;">
+            <i class="fas fa-camera" style="margin-top:2px; color:#ea580c; font-size:0.95rem; flex-shrink:0;"></i>
+            <div>
+              <strong>Important Notice:</strong> If you do not receive the confirmation email (e.g. due to full Gmail/mailbox storage or spam filters), <strong>please take a screenshot or save this Reference Number</strong>. You can present this reference code for verification at the event desk.
+            </div>
           </div>
         </div>
 
-        <div style="margin-top:2rem; display:flex; justify-content:center; gap:1rem; flex-wrap:wrap;">
-          <button class="btn btn-secondary" onclick="window.print()">
-            <i class="fas fa-print"></i> Print Receipt
+        <!-- Sleek Responsive Button Grid -->
+        <div class="success-actions-container">
+          <button type="button" class="btn btn-secondary success-btn" onclick="window.print()">
+            <i class="fas fa-print"></i>
+            <span>Print Receipt</span>
           </button>
-          <a href="index.html" class="btn btn-primary">
-            <i class="fas fa-redo"></i> Submit Another Response
+          <a href="https://yuva.ind.in/About/ContactUs.html" target="_blank" rel="noopener noreferrer" class="btn btn-secondary success-btn" title="Need help or have questions?">
+            <i class="fas fa-headset"></i>
+            <span>Contact Us</span>
+          </a>
+          <a href="index.html" class="btn btn-primary success-btn">
+            <i class="fas fa-redo"></i>
+            <span>Submit Another</span>
+          </a>
+        </div>
+
+        <div class="success-support-footer">
+          <span>Need assistance with your registration? Reach out to our support team at</span>
+          <a href="https://yuva.ind.in/About/ContactUs.html" target="_blank" rel="noopener noreferrer">
+            <i class="fas fa-external-link-alt"></i> yuva.ind.in/About/ContactUs.html
           </a>
         </div>
       </div>
