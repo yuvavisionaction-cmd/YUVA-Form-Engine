@@ -846,8 +846,7 @@
         is_active: true,
         fields: [],
         settings: {
-          sendEmailNotification: true,
-          confirmationMessage: 'Thank you for registering! Check your email for confirmation details.'
+          confirmationMessage: 'Thank you for registering! Your application has been recorded.'
         }
       };
       this.activeFieldIndex = -1;
@@ -2895,7 +2894,6 @@
         fields: [],
         settings: {
           allowAnonymous: true,
-          sendConfirmationEmail: true,
           maxSubmissions: 0,
           deadline: null,
           customTheme: 'default',

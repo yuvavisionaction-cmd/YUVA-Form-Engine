@@ -22,11 +22,10 @@ CREATE TABLE IF NOT EXISTS public.forms (
     settings JSONB NOT NULL DEFAULT '{
         "allowMultiple": false,
         "requireAuth": false,
-        "confirmationMessage": "Thank you for registering! Check your email for confirmation.",
+        "confirmationMessage": "Thank you for registering! Your application has been recorded.",
         "redirectUrl": "",
         "maxSubmissions": 0,
-        "closeDate": null,
-        "sendEmailNotification": true
+        "closeDate": null
     }'::jsonb,
     is_approved BOOLEAN DEFAULT false NOT NULL, -- Verification pass flag from Advanced Admin
     is_active BOOLEAN DEFAULT true NOT NULL, -- Live vs Closed state flag
